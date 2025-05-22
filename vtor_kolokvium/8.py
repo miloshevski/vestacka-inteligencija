@@ -429,32 +429,78 @@ data = [[0.02, 0.0371, 0.0428, 0.0207, 0.0954, 0.0986, 0.1539, 0.1601, 0.3109, 0
 def split_x_y(set):
     return [row[:-1] for row in set], [row[-1] for row in set]
 
+
 def calculate_accuracy(predictions, test_Y):
     acc = 0
     for pred, actual in zip(predictions, test_Y):
         if pred == actual:
             acc += 1
-    return acc / len(test_Y)
+    return acc/len(test_Y)
+
+
 
 if __name__ == '__main__':
+    dataset = data
     warnings.filterwarnings('ignore', category=ConvergenceWarning)
     model = input()
     col = int(input())
-    dataset = data
 
-    def idx(x, set):
-        return int(x * len(set))
+    def idx(x,set):
+        return int(x*len(set))
 
     class_0 = [row for row in dataset if row[-1] == 0]
     class_1 = [row for row in dataset if row[-1] == 1]
 
     set_1 = class_0[:idx(0.25, class_0)] + class_1[:idx(0.25, class_1)]
     set_2 = class_0[idx(0.25, class_0):idx(0.50, class_0)] + class_1[idx(0.25, class_1):idx(0.50, class_1)]
-    set_3 = class_0[idx(0.50, class_0):idx(0.75, class_0)] + class_1[idx(0.50, class_1):idx(0.75, class_1)]
-    set_4 = class_0[idx(0.75, class_0):] + class_1[idx(0.75, class_1):]
+    set_3 = class_0[idx(0.50,class_0):idx(0.75,class_0)] +  class_1[idx(0.50, class_1):idx(0.75, class_1)]
+    set_4 = class_0[idx(0.75,class_0):] + class_1[idx(0.75, class_1):]
 
     classifier = None
-    if model == "NB":
+    if model =="NB":
         classifier = GaussianNB()
     elif model == "MLP":
-        classifier = MLPClassifier(hidden)
+        classifier = MLPClassifier(hidden_layer_sizes=50,
+                                   activation="relu",
+                                   learning_rate_init=0.001,
+                                   random_state=0)
+
+
+    sets = [set_1, set_2, set_3, set_4]
+    accuracies = []
+    for i in range(0, 4):
+        train_sets_indexes = [j for j in range(0, 4) if j != i]
+        train_set = sets[train_sets_indexes[0]] + sets[train_sets_indexes[1]] + sets[train_sets_indexes[2]]
+        test_set = sets[i]
+
+        train_X, train_Y = split_x_y(train_set)
+        test_X, test_Y = split_x_y(test_set)
+        classifier.fit(train_X, train_Y)
+        acc_curr = calculate_accuracy(classifier.predict(test_X), test_Y)
+        accuracies.append(acc_curr)
+
+    best_fold_idx = accuracies.index(max(accuracies))
+    train_sets_indexes = [j for j in range(4) if j != best_fold_idx]
+
+    train_set = sets[train_sets_indexes[0]] + sets[train_sets_indexes[1]] + sets[train_sets_indexes[2]]
+    test_set = sets[best_fold_idx]
+
+    train_X, train_Y = split_x_y(train_set)
+    test_X, test_Y = split_x_y(test_set)
+
+    train_X = [row[:col] + row[col+1:] for row in train_X]
+    test_X = [row[:col] + row[col+1:] for row in test_X]
+
+    classifier2 = None
+    if model == "NB":
+        classifier2 = GaussianNB()
+    elif model == "MLP":
+        classifier2 = MLPClassifier(hidden_layer_sizes=50,
+                                   activation="relu",
+                                   learning_rate_init=0.001,
+                                   random_state=0)
+    classifier2.fit(train_X, train_Y)
+    acc_removed = calculate_accuracy(classifier2.predict(test_X), test_Y)
+
+    print(f'Prosechna tochnost: {sum(accuracies)/4}')
+    print(f'Tochnost so otstraneta kolona: {acc_removed}')
