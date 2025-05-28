@@ -1,7 +1,7 @@
-from sklearn import *
-from sklearn.ensemble import RandomForestClassifier
+# from sklearn import GaussianNB, DecisionTreeClassifier, RandomForestClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
 
 dataset = [
     [14.23, 1.71, 2.43, 15.6, 127, 2.8, 3.06, .28, 2.29, 5.64, 1.04, 3.92, 1065, 0],
@@ -72,16 +72,23 @@ dataset = [
     [13.11, 1.9, 2.75, 25.5, 116, 2.2, 1.28, .26, 1.56, 7.1, .61, 1.33, 425, 2]
 ]
 
-def generate_classifier(name):
-    if name=="NB":
+
+def generate_classifier(cf):
+    if cf == "NB":
         return GaussianNB()
-    elif name=="DT":
-        return DecisionTreeClassifier()
-    elif name=="RFC":
+    if cf == "DT":
+        return DecisionTreeClassifier(random_state=0)
+    if cf == "RFC":
         return RandomForestClassifier(random_state=0, n_estimators=3)
+
+
+def split_x_y(set):
+    return [row[:-1] for row in set], [row[-1] for row in set]
+
 
 def idx(set, percent):
     return int(percent * len(set))
+
 
 def train_test_split(dataset, cf, x1, x2):
     set_0 = [row for row in dataset if row[-1] == 0]
@@ -97,14 +104,47 @@ def train_test_split(dataset, cf, x1, x2):
         train_set = set_0[:idx(set_0, x2)] + set_1[:idx(set_1, x2)] + set_2[:idx(set_2, x2)]
 
     return train_set, test_set
+
+
+def accuracy_classifiers(c0: GaussianNB, c1: DecisionTreeClassifier, c2: RandomForestClassifier, test_X, test_Y):
+    acc = 0
+    for x, y in zip(test_X, test_Y):
+        ctr = 0
+        pred0 = c0.predict([x])[0]
+        pred1 = c1.predict([x])[0]
+        pred2 = c2.predict([x])[0]
+        if pred0 == y:
+            ctr += 1
+        if pred1 == y:
+            ctr += 1
+        if pred2 == y:
+            ctr += 1
+        if ctr >= 2:
+            acc += 1
+
+    return acc / len(test_Y)
+
+
 if __name__ == '__main__':
     x1 = float(input())
     x2 = float(input())
 
-    class_0 = [row for row in dataset if row[-1] == 0]
-    class_1 = [row for row in dataset if row[-1] == 1]
-    class_2 = [row for row in dataset if row[-1] == 2]
+    c_GNB = generate_classifier("NB")
+    train_set_0, test_set = train_test_split(dataset, "NB", x1, x2)
+    train_X_0, train_Y_0 = split_x_y(train_set_0)
+    c_GNB.fit(train_X_0, train_Y_0)
 
-    gausian = generate_classifier("NB")
-    train_set_0, test_set =
+    c_DT = generate_classifier("DT")
+    train_set_1, test_set = train_test_split(dataset, "DT", x1, x2)
+    train_X_1, train_Y_1 = split_x_y(train_set_1)
+    c_DT.fit(train_X_1, train_Y_1)
 
+    c_RFC = generate_classifier("RFC")
+    train_set_2, test_set = train_test_split(dataset, "RFC", x1, x2)
+    train_X_2, train_Y_2 = split_x_y(train_set_2)
+    c_RFC.fit(train_X_2, train_Y_2)
+
+    test_X, test_Y = split_x_y(test_set)
+
+    acc = accuracy_classifiers(c_GNB, c_DT, c_RFC, test_X, test_Y)
+    print(f"Tochnost: {acc}")
