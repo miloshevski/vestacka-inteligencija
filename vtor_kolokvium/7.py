@@ -463,7 +463,7 @@ def split_dataset(mode, split, dataset):
 if __name__ == '__main__':
     warnings.filterwarnings('ignore', category=ConvergenceWarning)
     mode = input()
-    split = int(input()) / 100
+    split = float(input()) / 100
     dataset = data
 
     max_precision = -1
